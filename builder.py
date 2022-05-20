@@ -16,14 +16,14 @@ menuscript = '~/bin/makemenu.sh'
 selected = '/tmp/menuselect.val'
 
 vue_cli_service = 'node_modules/.bin/vue-cli-service'
-vcs_build_cmd = ['build', '--mode']
 
 envs = ['local', 'dev', 'prod']
 
 def tomcat_dest(tenant):
     return {
         'local': f'/usr/local/tomcat/webapps/{tenant}ome/',
-        'dev': f'mcutomcat@esddrupal-dev:webapps/{tenant}ome/'
+        'dev': f'mcutomcat@esddrupal-dev:webapps/{tenant}ome/',
+        'prod': f'mcutomcat@esddrupal-prod:webapps/{tenant}ome/'
     }
 
 def errorexit(path=None, msg=None):
@@ -86,7 +86,7 @@ def generatemenu(prompt, choices):
     return readselected()
 
 def list_tenants(verbose=False):
-    tenantconfigs = 'src/config/*[!global|!arm|!app]*.config.js'
+    tenantconfigs = 'src/config/*[!global|!app]*.config.js'
     files = [file for file in glob.glob(tenantconfigs)]
     tenants = [os.path.basename(file).replace('.config.js', '') for file in files]
     if verbose:
@@ -98,14 +98,14 @@ def list_tenants(verbose=False):
 def collect_options(tenants, deploy, buildapi, no_api):
     print('[INFO] collecting...')
 
-    project = generatemenu('select project', tenants + ['all']).strip()
+    project = generatemenu('select project', ['all'] + tenants).strip()
     print(f'[INFO] project selected::{project}')
 
     env = generatemenu('select build environment', envs).strip()
     print(f'[INFO] selected environment::{env}')
 
     if not buildapi and not no_api:
-        buildapi = generatemenu('deploy backend api?', ['yes', 'no']).strip() == 'yes'
+        buildapi = generatemenu('deploy backend api?', ['no', 'yes']).strip() == 'yes'
 
     if not deploy:
         dodeploy = False
@@ -147,7 +147,10 @@ def build(project):
         deployapi(project)
         return
     else:
-        cmd = [vue_cli_service] + vcs_build_cmd + [project]
+        cmd = ['npm', 'run', f'build:{project}']
+        # if `npm run` doesn't work, try the following instead
+        #os.environ['PROJECT_BUILD'] = project
+        #cmd = [vue-cli-service, 'build']
         print('[ACTION]', cmd)
         subprocess.run(cmd)
         return
